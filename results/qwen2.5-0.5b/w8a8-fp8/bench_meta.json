@@ -1,0 +1,12 @@
+{
+  "model_name": "qwen2.5-0.5b",
+  "config_id": "w8a8-fp8",
+  "target": "activations",
+  "tier": 1,
+  "tier_axis": "format",
+  "is_isolation_ref": false,
+  "w_bits": 8,
+  "a_bits": 8,
+  "kv_bits": null,
+  "kv_cache_tokens": 3354448
+}

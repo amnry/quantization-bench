@@ -9,6 +9,6 @@
   "a_bits": null,
   "kv_bits": null,
   "hf_id": "Qwen/Qwen2.5-0.5B-Instruct",
-  "checkpoint_dir": "/Users/amanarya/quantization-bench/checkpoints/qwen2.5-0.5b/attn-proj-w4",
-  "quantize_seconds": 65.9
+  "checkpoint_dir": "/workspace/quantization-bench/checkpoints/qwen2.5-0.5b/attn-proj-w4",
+  "quantize_seconds": 34.0
 }

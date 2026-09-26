@@ -1,0 +1,14 @@
+{
+  "model_name": "qwen2.5-0.5b",
+  "config_id": "w8a8-fp8",
+  "target": "activations",
+  "tier": 1,
+  "tier_axis": "format",
+  "is_isolation_ref": false,
+  "w_bits": 8,
+  "a_bits": 8,
+  "kv_bits": null,
+  "hf_id": "Qwen/Qwen2.5-0.5B-Instruct",
+  "checkpoint_dir": "/workspace/quantization-bench/checkpoints/qwen2.5-0.5b/w8a8-fp8",
+  "quantize_seconds": 18.4
+}

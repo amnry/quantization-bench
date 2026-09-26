@@ -1,0 +1,12 @@
+{
+  "model_name": "qwen2.5-0.5b",
+  "config_id": "kv-fp8-e5m2",
+  "target": "kv",
+  "tier": 2,
+  "tier_axis": "format",
+  "is_isolation_ref": false,
+  "w_bits": null,
+  "a_bits": null,
+  "kv_bits": 8,
+  "kv_cache_tokens": 6695856
+}

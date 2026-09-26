@@ -8,6 +8,5 @@
   "w_bits": 4,
   "a_bits": null,
   "kv_bits": null,
-  "kv_cache_tokens": 234567,
-  "dry_run": true
+  "kv_cache_tokens": 3353184
 }

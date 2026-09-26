@@ -1,0 +1,12 @@
+{
+  "model_name": "qwen2.5-0.5b",
+  "config_id": "w8a16-fp8",
+  "target": "isolation-ref",
+  "tier": null,
+  "tier_axis": null,
+  "is_isolation_ref": true,
+  "w_bits": 8,
+  "a_bits": null,
+  "kv_bits": null,
+  "kv_cache_tokens": 3354448
+}
