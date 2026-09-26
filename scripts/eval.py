@@ -49,7 +49,10 @@ def run_vllm_backend(checkpoint_dir: str, tasks: list, limit, num_fewshot: int,
                       max_model_len: int, metadata: dict = None) -> dict:
     from lm_eval import simple_evaluate
 
-    model_args = f"pretrained={checkpoint_dir},max_model_len={max_model_len},dtype=auto"
+    model_args = (
+        f"pretrained={checkpoint_dir},max_model_len={max_model_len},dtype=auto,"
+        f"gpu_memory_utilization=0.85,batch_size=auto:8"
+    )
     results = simple_evaluate(
         model="vllm", model_args=model_args, tasks=tasks, num_fewshot=num_fewshot, limit=limit,
         metadata=metadata,
