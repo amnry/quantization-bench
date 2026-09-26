@@ -1,0 +1,16 @@
+# KV cache, Tier 1 — BF16 weights/activations, FP8 e4m3 KV cache with calibrated static scales.
+# tier_axis=format: both KV tiers are 8-bit; e4m3 (3 mantissa bits) is the easier format.
+id: kv-fp8-e4m3
+target: kv
+tier: 1
+tier_axis: format
+weights: null
+activations: null
+kv_cache:
+  enabled: true
+  num_bits: 8
+  type: float
+  format: e4m3
+  strategy: tensor
+  dynamic: false     # static scales from calibration forward passes
+vllm_extra_args: ["--kv-cache-dtype", "fp8_e4m3"]

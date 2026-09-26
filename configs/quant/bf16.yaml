@@ -1,0 +1,10 @@
+# Control — no quantization. Loaded/served as-is in BF16.
+id: bf16
+target: control
+tier: 0
+tier_axis: null
+weights: null
+activations: null
+kv_cache:
+  enabled: false
+vllm_extra_args: []

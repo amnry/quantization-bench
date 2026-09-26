@@ -1,0 +1,19 @@
+# Smoke pod (L4 24GB) — cheap GPU, prove the full pipeline runs end to end on all 10 configs.
+name: smoke
+eval:
+  backend: vllm
+  limit: 20
+  tasks: ["gsm8k", "mmlu", "ruler"]
+  num_fewshot: 5
+  ruler_lengths: [4096]        # 16384 skipped at smoke — long enough to prove the KV path works
+bench:
+  enabled: true
+  num_prompts: 20
+  workloads:
+    decode:    {input_len: 128,  output_len: 512, concurrency: [1, 4, 16]}
+    prefill:   {input_len: 4096, output_len: 16,  concurrency: [1, 4, 16]}
+    longctx:   {input_len: 8192, output_len: 256, concurrency: [16, 64]}
+server:
+  max_model_len: 16384
+  gpu_memory_utilization: 0.90
+  max_num_seqs: 256

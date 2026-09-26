@@ -1,0 +1,15 @@
+# Weights, Tier 2 — INT4 weight-only (GPTQ, group_size=128). tier_axis=bits: fewer bits than w8a16.
+id: w4a16
+target: weights
+tier: 2
+tier_axis: bits
+weights:
+  scheme: W4A16
+  algorithm: gptq
+  group_size: 128
+  targets: ["Linear"]
+  ignore: ["lm_head"]
+activations: null
+kv_cache:
+  enabled: false
+vllm_extra_args: []

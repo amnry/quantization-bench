@@ -1,0 +1,19 @@
+# Activations, Tier 1 — FP8 weights + dynamic per-token FP8 activations.
+# tier_axis=format: both activation tiers are 8-bit; this is the *easier* FP8 format.
+# Activation effect (Tier 1) = this config MINUS w8a16-fp8 (same FP8 weights, isolates activations).
+# Requires Ada/Hopper (native FP8 compute) — validate on smoke pod (L4).
+id: w8a8-fp8
+target: activations
+tier: 1
+tier_axis: format
+weights:
+  scheme: FP8
+  algorithm: none
+  targets: ["Linear"]
+  ignore: ["lm_head"]
+activations:
+  scheme: FP8_DYNAMIC
+  strategy: token          # dynamic per-token scale, standard vLLM FP8 W8A8 path
+kv_cache:
+  enabled: false
+vllm_extra_args: []

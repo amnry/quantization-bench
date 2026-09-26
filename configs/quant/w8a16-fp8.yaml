@@ -1,0 +1,16 @@
+# Isolation reference — NOT one of the 4 target studies on its own.
+# FP8 weight-only (BF16 activations). Exists so we can subtract it from w8a8-fp8
+# to isolate the *activation* effect at Tier 1 without weight-format confound.
+id: w8a16-fp8
+target: isolation-ref
+tier: null
+tier_axis: null
+weights:
+  scheme: FP8
+  algorithm: none        # simple per-channel static quant, no GPTQ needed for FP8 weight-only
+  targets: ["Linear"]
+  ignore: ["lm_head"]
+activations: null
+kv_cache:
+  enabled: false
+vllm_extra_args: []

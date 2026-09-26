@@ -1,0 +1,48 @@
+# Master list of configs. Scripts iterate this file rather than globbing configs/quant/
+# so ordering + inclusion is explicit and isolation-ref configs can be flagged.
+#
+# tier_axis meaning (see PLAN.md "Tier definition"):
+#   bits   -> tier number = bit-width (weights, attn-proj). Tier2 = fewer bits.
+#   format -> both tiers are 8-bit (activations, kv). Tier2 = harder/lossier 8-bit format.
+configs:
+  - id: bf16
+    is_isolation_ref: false
+  - id: w8a16
+    is_isolation_ref: false
+  - id: w4a16
+    is_isolation_ref: false
+  - id: w8a16-fp8
+    is_isolation_ref: true     # used only to compute activation-effect deltas, not a target study itself
+  - id: w8a8-fp8
+    is_isolation_ref: false
+  - id: w8a8-int8
+    is_isolation_ref: false
+  - id: kv-fp8-e4m3
+    is_isolation_ref: false
+  - id: kv-fp8-e5m2
+    is_isolation_ref: false
+  - id: attn-proj-w8
+    is_isolation_ref: false
+  - id: attn-proj-w4
+    is_isolation_ref: false
+
+# Isolation deltas collect.py computes automatically (config_a - config_b):
+isolation_deltas:
+  - name: activation_effect_tier1
+    a: w8a8-fp8
+    b: w8a16-fp8
+  - name: activation_effect_tier2
+    a: w8a8-int8
+    b: w8a16
+  - name: weight_effect_tier1
+    a: w8a16
+    b: bf16
+  - name: weight_effect_tier2
+    a: w4a16
+    b: bf16
+  - name: kv_effect_tier1
+    a: kv-fp8-e4m3
+    b: bf16
+  - name: kv_effect_tier2
+    a: kv-fp8-e5m2
+    b: bf16

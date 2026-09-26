@@ -1,0 +1,9 @@
+# Local dev/test model — used to validate script logic end to end (Mac M2).
+name: qwen2.5-0.5b
+hf_id: Qwen/Qwen2.5-0.5B-Instruct
+max_model_len: 16384
+calib:
+  dataset: HuggingFaceH4/ultrachat_200k
+  split: train_sft
+  num_samples: 32     # small on purpose — CPU calib on a 0.5B model, local only
+  max_seq_len: 2048

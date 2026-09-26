@@ -1,0 +1,17 @@
+# attn-proj, Tier 1 — INT8 weight-only on q/k/v/o projections ONLY. MLP stays BF16.
+# Attention math (QK^T, softmax, ·V) runs BF16 — this is weight quant scoped to attention layers,
+# not quantized attention compute. tier_axis=bits (same axis as w8a16/w4a16).
+id: attn-proj-w8
+target: attn-proj
+tier: 1
+tier_axis: bits
+weights:
+  scheme: W8A16
+  algorithm: gptq
+  group_size: 128
+  targets: ["re:.*(q_proj|k_proj|v_proj|o_proj)$"]
+  ignore: ["lm_head"]
+activations: null
+kv_cache:
+  enabled: false
+vllm_extra_args: []

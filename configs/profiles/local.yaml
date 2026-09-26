@@ -1,0 +1,16 @@
+# Local (Mac M2) — validate script logic only. No vLLM here.
+name: local
+eval:
+  backend: hf
+  limit: 5
+  # Only checking eval.json has the right keys, not measuring real accuracy — one mmlu
+  # subtask instead of all 57. ruler skipped locally (needs long-context serving to be meaningful).
+  tasks: ["gsm8k", "mmlu_abstract_algebra"]
+  num_fewshot: 5
+bench:
+  enabled: false      # serve_bench.py runs in --dry-run mode instead (parses fixture, no real server)
+  num_prompts: 5
+  workloads:
+    decode:    {input_len: 128,  output_len: 512, concurrency: [1, 4]}
+    prefill:   {input_len: 4096, output_len: 16,  concurrency: [1, 4]}
+    longctx:   {input_len: 8192, output_len: 256, concurrency: [16]}

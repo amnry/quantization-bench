@@ -1,0 +1,14 @@
+{
+  "model_name": "qwen2.5-0.5b",
+  "config_id": "attn-proj-w4",
+  "target": "attn-proj",
+  "tier": 2,
+  "tier_axis": "bits",
+  "is_isolation_ref": false,
+  "w_bits": 4,
+  "a_bits": null,
+  "kv_bits": null,
+  "hf_id": "Qwen/Qwen2.5-0.5B-Instruct",
+  "checkpoint_dir": "/Users/amanarya/quantization-bench/checkpoints/qwen2.5-0.5b/attn-proj-w4",
+  "quantize_seconds": 65.9
+}

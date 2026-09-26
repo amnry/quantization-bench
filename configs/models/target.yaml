@@ -1,0 +1,9 @@
+# Real target model for the actual benchmark study — run on rented GPU only.
+name: qwen2.5-7b
+hf_id: Qwen/Qwen2.5-7B-Instruct
+max_model_len: 16384
+calib:
+  dataset: HuggingFaceH4/ultrachat_200k
+  split: train_sft
+  num_samples: 512
+  max_seq_len: 2048

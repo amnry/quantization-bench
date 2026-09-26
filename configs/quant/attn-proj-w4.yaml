@@ -1,0 +1,16 @@
+# attn-proj, Tier 2 — INT4 weight-only on q/k/v/o projections ONLY. MLP stays BF16.
+# tier_axis=bits: fewer bits than attn-proj-w8, same scope (attention projections only).
+id: attn-proj-w4
+target: attn-proj
+tier: 2
+tier_axis: bits
+weights:
+  scheme: W4A16
+  algorithm: gptq
+  group_size: 128
+  targets: ["re:.*(q_proj|k_proj|v_proj|o_proj)$"]
+  ignore: ["lm_head"]
+activations: null
+kv_cache:
+  enabled: false
+vllm_extra_args: []

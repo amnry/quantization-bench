@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# quantized checkpoints stay off GitHub (large, pod-local)
+checkpoints/
+*.safetensors
+
+# HF/lm-eval caches if pointed locally
+.cache/
+hf_cache/
+
+# results ARE tracked (JSON only) — but ignore any raw log dumps
+*.log

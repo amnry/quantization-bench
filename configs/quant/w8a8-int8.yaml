@@ -1,0 +1,24 @@
+# Activations, Tier 2 — INT8 weights + INT8 activations (SmoothQuant + GPTQ).
+# tier_axis=format: both activation tiers are 8-bit; this is the *harder* format
+# (no exponent, outlier-sensitive, needs SmoothQuant to be usable at all).
+# Activation effect (Tier 2) = this config MINUS w8a16 (same INT8 weights, isolates activations).
+id: w8a8-int8
+target: activations
+tier: 2
+tier_axis: format
+smoothquant:
+  enabled: true
+  smoothing_strength: 0.8
+weights:
+  scheme: W8A8
+  algorithm: gptq
+  group_size: 128
+  targets: ["Linear"]
+  ignore: ["lm_head"]
+activations:
+  scheme: W8A8
+  strategy: token
+  dynamic: true
+kv_cache:
+  enabled: false
+vllm_extra_args: []

@@ -1,0 +1,15 @@
+# Weights, Tier 1 — INT8 weight-only (GPTQ). tier_axis=bits: this IS the 8-bit weight point.
+id: w8a16
+target: weights
+tier: 1
+tier_axis: bits
+weights:
+  scheme: W8A16
+  algorithm: gptq
+  group_size: 128
+  targets: ["Linear"]
+  ignore: ["lm_head"]
+activations: null
+kv_cache:
+  enabled: false
+vllm_extra_args: []
