@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "model_name": "qwen2.5-0.5b",
+    "config_id": "attn-proj-w8",
+    "target": "attn-proj",
+    "tier": 1,
+    "tier_axis": "bits",
+    "is_isolation_ref": false,
+    "w_bits": 8,
+    "a_bits": null,
+    "kv_bits": null
+  },
+  "profile": "local",
+  "backend": "hf",
+  "limit": 5,
+  "eval_seconds": 37.5,
+  "results": {
+    "gsm8k": {
+      "name": "gsm8k",
+      "alias": "gsm8k",
+      "sample_len": 5,
+      "exact_match,strict-match": 0.0,
+      "exact_match_stderr,strict-match": 0.0,
+      "exact_match,flexible-extract": 0.0,
+      "exact_match_stderr,flexible-extract": 0.0
+    },
+    "mmlu_abstract_algebra": {
+      "name": "mmlu_abstract_algebra",
+      "alias": "abstract_algebra",
+      "sample_len": 5,
+      "acc,none": 0.0,
+      "acc_stderr,none": 0.0
+    }
+  }
+}

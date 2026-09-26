@@ -13,3 +13,4 @@ hf_cache/
 
 # results ARE tracked (JSON only) — but ignore any raw log dumps
 *.log
+PLAN.md

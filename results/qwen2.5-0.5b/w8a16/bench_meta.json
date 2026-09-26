@@ -1,0 +1,13 @@
+{
+  "model_name": "qwen2.5-0.5b",
+  "config_id": "w8a16",
+  "target": "weights",
+  "tier": 1,
+  "tier_axis": "bits",
+  "is_isolation_ref": false,
+  "w_bits": 8,
+  "a_bits": null,
+  "kv_bits": null,
+  "kv_cache_tokens": 234567,
+  "dry_run": true
+}
