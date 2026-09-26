@@ -14,6 +14,6 @@ bench:
     prefill:   {input_len: 4096, output_len: 16,  concurrency: [1, 4, 16]}
     longctx:   {input_len: 8192, output_len: 256, concurrency: [16, 64]}
 server:
-  max_model_len: 16384
+  max_model_len: 20480
   gpu_memory_utilization: 0.90
   max_num_seqs: 256

@@ -102,7 +102,7 @@ def main():
 
     eval_cfg = profile["eval"]
     tasks = [t for t in eval_cfg["tasks"] if t != "ruler"]
-    max_model_len = profile.get("server", {}).get("max_model_len", 16384)
+    max_model_len = profile.get("server", {}).get("max_model_len", 20480)
 
     print(f"[eval] {args.model}/{args.config} profile={args.profile} "
           f"backend={eval_cfg['backend']} limit={eval_cfg['limit']} tasks={tasks}")
@@ -114,9 +114,10 @@ def main():
         results = run_vllm_backend(checkpoint_dir, tasks, eval_cfg["limit"], eval_cfg["num_fewshot"], max_model_len)
 
     if "ruler" in eval_cfg["tasks"]:
+        ruler_limit = eval_cfg.get("ruler_limit", eval_cfg["limit"])
         ruler_results = run_ruler(
             checkpoint_dir, eval_cfg["backend"], eval_cfg.get("ruler_lengths", [4096]),
-            eval_cfg["limit"], max_model_len,
+            ruler_limit, max_model_len,
         )
         results.update(ruler_results)
 

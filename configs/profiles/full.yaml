@@ -6,6 +6,7 @@ eval:
   tasks: ["gsm8k", "mmlu", "ruler"]
   num_fewshot: 5
   ruler_lengths: [4096, 16384]
+  ruler_limit: 100             # cap samples/subtask/length — default RULER sizing blows the time budget across 10 configs
 bench:
   enabled: true
   num_prompts: 200
@@ -14,6 +15,6 @@ bench:
     prefill:   {input_len: 4096, output_len: 16,  concurrency: [1, 4, 16, 64]}
     longctx:   {input_len: 8192, output_len: 256, concurrency: [16, 64, 128, 256]}
 server:
-  max_model_len: 16384
+  max_model_len: 20480
   gpu_memory_utilization: 0.90
   max_num_seqs: 256
