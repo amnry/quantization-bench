@@ -46,16 +46,43 @@ def build_modifiers(quant_cfg: dict):
         }
 
     if weights is not None:
-        common_kwargs = dict(
-            scheme=weights["scheme"],
-            targets=weights.get("targets", ["Linear"]),
-            ignore=weights.get("ignore", ["lm_head"]),
-        )
+        targets = weights.get("targets", ["Linear"])
+        ignore = weights.get("ignore", ["lm_head"])
+        common_kwargs = dict(ignore=ignore)
         # NOTE: group_size is NOT a modifier kwarg — the W4A16/W8A16 presets already
         # bake in group_size=128 (checked against installed compressed-tensors 0.14).
         # configs/quant/*.yaml still records it for documentation purposes only.
         if kv_cache_scheme:
             common_kwargs["kv_cache_scheme"] = kv_cache_scheme
+
+        if weights["scheme"] == "FP8" and quant_cfg.get("activations") is None:
+            # Weight-only FP8: llm-compressor's "FP8" preset always bundles static
+            # per-tensor activation quantization (see compressed_tensors.quantization.
+            # quant_scheme.FP8) — there is no preset name for FP8 weight-only. Build
+            # the scheme by hand so input_activations stays unset (per-channel weights,
+            # matching FP8_DYNAMIC's weight args minus the activation side).
+            from compressed_tensors.quantization import (
+                QuantizationArgs,
+                QuantizationScheme,
+                QuantizationStrategy,
+                QuantizationType,
+            )
+            common_kwargs["config_groups"] = {
+                "group_0": QuantizationScheme(
+                    targets=targets,
+                    weights=QuantizationArgs(
+                        num_bits=8,
+                        type=QuantizationType.FLOAT,
+                        strategy=QuantizationStrategy.CHANNEL,
+                        symmetric=True,
+                        dynamic=False,
+                    ),
+                    input_activations=None,
+                )
+            }
+        else:
+            common_kwargs["scheme"] = weights["scheme"]
+            common_kwargs["targets"] = targets
 
         if weights.get("algorithm") == "gptq":
             modifiers.append(GPTQModifier(**common_kwargs))
