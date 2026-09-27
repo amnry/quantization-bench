@@ -42,29 +42,50 @@ print("\n".join(all_config_ids()))
 PY
 )
 
+# Runs quantize/eval/bench for one config. Each step is `||`-guarded so a
+# failure returns 1 here instead of tripping `set -e` at the top level —
+# callers must invoke this as the condition of an if/while (see below).
+run_config() {
+  local model="$1" config_id="$2" profile="$3"
+  echo "=== [run_all] ${config_id} : quantize ==="
+  python3 scripts/quantize.py --model "$model" --config "$config_id" || return 1
+  echo "=== [run_all] ${config_id} : eval ==="
+  python3 scripts/eval.py --model "$model" --config "$config_id" --profile "$profile" || return 1
+  echo "=== [run_all] ${config_id} : bench ==="
+  python3 scripts/serve_bench.py --model "$model" --config "$config_id" --profile "$profile" $DRY_RUN_FLAG || return 1
+}
+
 for CONFIG_ID in $CONFIG_IDS; do
-  DONE_MARKER="results/${MODEL}/${CONFIG_ID}/DONE"
+  RESULT_DIR="results/${MODEL}/${CONFIG_ID}"
+  DONE_MARKER="${RESULT_DIR}/DONE"
   if [[ -f "$DONE_MARKER" ]]; then
     echo "[run_all] ${CONFIG_ID} already DONE, skipping"
     continue
   fi
 
-  echo "=== [run_all] ${CONFIG_ID} : quantize ==="
-  python3 scripts/quantize.py --model "$MODEL" --config "$CONFIG_ID"
+  mkdir -p "$RESULT_DIR"
+  rm -f "${RESULT_DIR}/FAILED"
+  STEP_LOG="${RESULT_DIR}/step.log"
 
-  echo "=== [run_all] ${CONFIG_ID} : eval ==="
-  python3 scripts/eval.py --model "$MODEL" --config "$CONFIG_ID" --profile "$PROFILE"
-
-  echo "=== [run_all] ${CONFIG_ID} : bench ==="
-  python3 scripts/serve_bench.py --model "$MODEL" --config "$CONFIG_ID" --profile "$PROFILE" $DRY_RUN_FLAG
-
-  touch "results/${MODEL}/${CONFIG_ID}/DONE"
-  echo "[run_all] ${CONFIG_ID} DONE"
+  # `if pipeline; then` is exempt from `set -e` regardless of pipefail, so a
+  # failure inside run_config lands in the else branch instead of killing
+  # the whole script — one bad config no longer aborts the run.
+  if run_config "$MODEL" "$CONFIG_ID" "$PROFILE" 2>&1 | tee "$STEP_LOG"; then
+    rm -f "$STEP_LOG"
+    touch "$DONE_MARKER"
+    echo "[run_all] ${CONFIG_ID} DONE"
+    COMMIT_MSG="results(${MODEL}): ${CONFIG_ID} (${PROFILE})"
+  else
+    tail -n 100 "$STEP_LOG" > "${RESULT_DIR}/FAILED"
+    rm -f "$STEP_LOG"
+    echo "[run_all] ${CONFIG_ID} FAILED, see ${RESULT_DIR}/FAILED — continuing to next config"
+    COMMIT_MSG="results(${MODEL}): ${CONFIG_ID} FAILED (${PROFILE})"
+  fi
 
   if [[ "$PUSH" == true ]]; then
     echo "[run_all] committing + pushing results for ${CONFIG_ID}"
-    git add "results/${MODEL}/${CONFIG_ID}"
-    git commit -m "results(${MODEL}): ${CONFIG_ID} (${PROFILE})" || echo "[run_all] nothing to commit"
+    git add "$RESULT_DIR"
+    git commit -m "$COMMIT_MSG" || echo "[run_all] nothing to commit"
     git pull --rebase origin main || true
     git push origin main || echo "[run_all] WARNING: push failed for ${CONFIG_ID}, will retry next run"
   fi
