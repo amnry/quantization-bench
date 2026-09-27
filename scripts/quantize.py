@@ -162,13 +162,21 @@ def main():
             return
         print(f"[quantize] --force: re-quantizing into {out_dir}")
 
+    calib_cfg = dict(model_cfg["calib"])
+    if quant_cfg.get("kv_cache", {}).get("enabled") and calib_cfg["num_samples"] < 512:
+        # KV cache static scales are sensitive to calibration coverage — floor at 512
+        # regardless of the model config's default (e.g. qwen2.5-0.5b.yaml's 32 is
+        # tuned for fast local CPU dev, not for KV scale quality on the smoke pod).
+        print(f"[quantize] KV config: bumping calib num_samples {calib_cfg['num_samples']} -> 512")
+        calib_cfg["num_samples"] = 512
+
     t0 = time.time()
     skipped_reason = None
     try:
         if quant_cfg["target"] == "control":
             run_control(model_cfg["hf_id"], out_dir)
         else:
-            run_quantize(model_cfg["hf_id"], quant_cfg, model_cfg["calib"], out_dir)
+            run_quantize(model_cfg["hf_id"], quant_cfg, calib_cfg, out_dir)
     except RuntimeError as e:
         involves_fp8 = "FP8" in str(quant_cfg.get("weights") or {}).upper() or \
             "FP8" in str(quant_cfg.get("activations") or {}).upper() or \
