@@ -7,17 +7,17 @@
 configs:
   - id: bf16
     is_isolation_ref: false
-  - id: w8a16
-    is_isolation_ref: false
   - id: w4a16
+    is_isolation_ref: false
+  - id: w8a8-fp8
     is_isolation_ref: false
   - id: w8a16-fp8
     is_isolation_ref: true     # used only to compute activation-effect deltas, not a target study itself
-  - id: w8a8-fp8
+  - id: kv-fp8-e4m3
+    is_isolation_ref: false
+  - id: w8a16
     is_isolation_ref: false
   - id: w8a8-int8
-    is_isolation_ref: false
-  - id: kv-fp8-e4m3
     is_isolation_ref: false
   - id: kv-fp8-e5m2
     is_isolation_ref: false
