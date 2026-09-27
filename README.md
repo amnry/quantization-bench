@@ -17,17 +17,17 @@ When a model answers you, it does two kinds of work:
 
 There are three main things you can shrink:
 
-| What you shrink | What it is | Where we expect it to help |
+| What you shrink | What it is | Where I expect it to help |
 |---|---|---|
 | **Weights** | The model's learned numbers | Writing answers, since there's less data to move each step |
 | **Activations** | The intermediate numbers during the math | Reading long prompts and serving many users at once |
 | **KV cache** | The model's short-term memory of the conversation | Long documents and many users at once, since more conversations fit in memory |
 
-We also test shrinking only the **attention projection layers**, to see how sensitive that part of the model is compared to shrinking everything.
+I also test shrinking only the **attention projection layers**, to see how sensitive that part of the model is compared to shrinking everything.
 
 ---
 
-## What we test
+## What I test
 
 10 versions of the same model:
 
@@ -46,7 +46,7 @@ We also test shrinking only the **attention projection layers**, to see how sens
 
 ---
 
-## How we measure
+## How I measure
 
 **Speed.** Each part of the model gets a test designed to stress it:
 
@@ -66,7 +66,7 @@ Each test runs at several load levels, from 1 user up to 256 at the same time.
 
 ## Smoke test results (Qwen2.5-0.5B)
 
-Before spending money on a big GPU, we ran all 10 versions on a tiny 0.5B model to make sure the pipeline works end to end. All 10 completed.
+Before spending money on a big GPU, I ran all 10 versions on a tiny 0.5B model to make sure the pipeline works end to end. All 10 completed.
 
 | Version | Model size | vs baseline | Memory capacity (tokens) | vs baseline |
 |---|---|---|---|---|
@@ -90,13 +90,13 @@ Before spending money on a big GPU, we ran all 10 versions on a tiny 0.5B model 
 - **Shrinking KV cache doubled memory capacity.** This works at any model size, and it's the clearest result so far.
 - **Shrinking weights barely helped capacity (+1%).** The whole 0.5B model is under 1 GB on a 24 GB GPU, so saving half a gigabyte barely matters. On the 7B model, weights are about 15 GB on a 48 GB GPU, so 4-bit weights should free around 10 GB. That's a big jump in capacity.
 - **4-bit weights only cut the size by 53%, not 75%.** Some parts of the model (the embedding layers) are never shrunk, and in a tiny model they make up a large share of its size. In the 7B model they're a much smaller share, so the savings will be closer to the full amount.
-- **Speed and accuracy aren't reported for the smoke test.** It used only 20 test questions and 20 requests per load level, and a model this small is limited by overhead rather than by memory or compute. Those numbers can't tell the versions apart, so we don't draw conclusions from them.
+- **Speed and accuracy aren't reported for the smoke test.** It used only 20 test questions and 20 requests per load level, and a model this small is limited by overhead rather than by memory or compute. Those numbers can't tell the versions apart, so I don't draw conclusions from them.
 
 ---
 
 ## What to expect from the 7B run
 
-The full run uses **Qwen2.5-7B-Instruct on an NVIDIA L40S (48 GB)**, with full test sets. What we expect to see:
+The full run uses **Qwen2.5-7B-Instruct on an NVIDIA L40S (48 GB)**, with full test sets. What I expect to see:
 
 - **4-bit weights** give the fastest answers for a single user.
 - **8-bit weights and activations** catch up or pull ahead when many users are served at once.
@@ -124,4 +124,4 @@ Use `--model qwen2.5-0.5b --profile smoke` for a quick test run first (about an 
 
 ---
 
-Built by [Aman Arya](https://github.com/amnry). Questions or ideas? Open an issue.
+Questions or ideas? Open an issue.
