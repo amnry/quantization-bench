@@ -1,4 +1,4 @@
-# Real pod (H100 80GB) — full study on Qwen2.5-7B-Instruct, no shortcuts.
+# Real pod (L40S 48GB) — full study on Qwen2.5-7B-Instruct, no shortcuts.
 name: full
 eval:
   backend: vllm
