@@ -39,17 +39,41 @@ LABELS = {
     "kv-fp8-e5m2": "FP8 KV (e5m2)",
 }
 
+# These two produced near-random accuracy (GSM8K ~0%, MMLU ~random-guess) —
+# not a quantization *tradeoff*, an eval-breaking bug in the KV-cache quant
+# path. Styled as gray/hatched/dashed everywhere and called out explicitly
+# rather than plotted as if they were just "worse".
+BROKEN_KV_IDS = {"kv-fp8-e4m3", "kv-fp8-e5m2"}
+BROKEN_SUFFIX = " (broken output)"
+BROKEN_COLOR = "#bbbbbb"
+BROKEN_HATCH = "///"
+BF16_COLOR = "#000000"
+# w8a16-fp8 is tagged target=isolation-ref, which normally maps to a light
+# gray (TARGET_COLORS["isolation-ref"]) — indistinguishable from the broken
+# KV gray now in use, so it needs its own visible color.
+W8A16_FP8_COLOR = "#E45756"
+
 DECODE_CONCURRENCIES = [1, 4, 16, 64]
 PREFILL_CONCURRENCIES = [1, 4, 16, 64]
 LONGCTX_CONCURRENCY = 64
 
 
 def label_of(config_id: str) -> str:
-    return LABELS.get(config_id, config_id)
+    base = LABELS.get(config_id, config_id)
+    if config_id in BROKEN_KV_IDS:
+        return base + BROKEN_SUFFIX
+    return base
 
 
-def style_of(meta: dict) -> dict:
+def style_of(meta: dict, config_id: str | None = None) -> dict:
+    if config_id == "bf16":
+        return dict(color=BF16_COLOR, linestyle="-", marker="o")
+    if config_id in BROKEN_KV_IDS:
+        return dict(color=BROKEN_COLOR, linestyle="--", marker="s", linewidth=1.2, hatch=BROKEN_HATCH)
+
     color = TARGET_COLORS.get(meta.get("target"), "#333333")
+    if config_id == "w8a16-fp8":
+        color = W8A16_FP8_COLOR
     if meta.get("is_isolation_ref"):
         return dict(color=color, linestyle=":", marker="^")
     tier = meta.get("tier")
@@ -88,7 +112,7 @@ class Config:
 
     @property
     def style(self) -> dict:
-        return style_of(self.meta)
+        return style_of(self.meta, self.id)
 
 
 def load_configs(model_name: str) -> list[Config]:
@@ -152,7 +176,8 @@ def fig1_speedup(configs: list[Config], bf16: Config, out_dir: Path) -> None:
                 xs.append(c)
                 ys.append(val / bf16_vals[c])
             if xs:
-                ax.plot(xs, ys, label=cfg.label, **cfg.style)
+                line_style = {k: v for k, v in cfg.style.items() if k != "hatch"}
+                ax.plot(xs, ys, label=cfg.label, **line_style)
 
         ax.axhline(1.0, color="#999999", linewidth=1, linestyle="-", zorder=1)
         ax.set_xscale("log", base=2)
@@ -166,9 +191,15 @@ def fig1_speedup(configs: list[Config], bf16: Config, out_dir: Path) -> None:
     ax_prefill.set_title("Reading long prompts (prefill)")
 
     handles, labels = ax_decode.get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=min(len(labels), 4), bbox_to_anchor=(0.5, -0.05))
+    fig.legend(handles, labels, loc="lower center", ncol=min(len(labels), 4), bbox_to_anchor=(0.5, -0.06))
+    fig.text(
+        0.5, -0.12,
+        "Gray: FP8 KV cache configs produced broken outputs in this setup; "
+        "speed/capacity shown for reference only.",
+        ha="center", fontsize=8, color="#777777", style="italic",
+    )
     fig.suptitle("Where each version speeds things up", fontsize=14, fontweight="bold")
-    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    fig.tight_layout(rect=(0, 0.1, 1, 1))
     fig.savefig(out_dir / "fig1_speedup.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
 
@@ -177,18 +208,12 @@ def fig1_speedup(configs: list[Config], bf16: Config, out_dir: Path) -> None:
 # fig2: accuracy delta vs bf16 (GSM8K + MMLU), in percentage points
 # ---------------------------------------------------------------------------
 
-def fig2_accuracy(configs: list[Config], bf16: Config, out_dir: Path) -> None:
-    others = [c for c in configs if c.id != bf16.id]
-    bf16_gsm8k, bf16_gsm8k_se = gsm8k_acc(bf16)
-    bf16_mmlu, bf16_mmlu_se = mmlu_acc(bf16)
-
-    fig, ax = plt.subplots(figsize=(max(8, 1.6 * len(others)), 5.5))
-
-    x = list(range(len(others)))
+def _draw_accuracy_panel(ax, cfgs: list[Config], bf16_gsm8k, bf16_gsm8k_se, bf16_mmlu, bf16_mmlu_se) -> None:
+    x = list(range(len(cfgs)))
     width = 0.35
     label_extents = [0.0]
 
-    for i, cfg in enumerate(others):
+    for i, cfg in enumerate(cfgs):
         g, gse = gsm8k_acc(cfg)
         m, mse = mmlu_acc(cfg)
         color = cfg.style["color"]
@@ -213,17 +238,36 @@ def fig2_accuracy(configs: list[Config], bf16: Config, out_dir: Path) -> None:
 
     ax.axhline(0.0, color="#999999", linewidth=1)
     ax.set_xticks(x)
-    ax.set_xticklabels([c.label for c in others], rotation=20, ha="right")
-    ax.set_ylabel("Change vs BF16 (percentage points)")
+    ax.set_xticklabels([c.label for c in cfgs], rotation=20, ha="right")
     ymax = max(label_extents) * 1.35
     ax.set_ylim(-ymax, ymax)
+    clean_axes(ax)
+
+
+def fig2_accuracy(configs: list[Config], bf16: Config, out_dir: Path) -> None:
+    others = [c for c in configs if c.id != bf16.id]
+    normal = [c for c in others if c.id not in BROKEN_KV_IDS]
+    broken = [c for c in others if c.id in BROKEN_KV_IDS]
+    bf16_gsm8k, bf16_gsm8k_se = gsm8k_acc(bf16)
+    bf16_mmlu, bf16_mmlu_se = mmlu_acc(bf16)
+
+    fig, (ax_l, ax_r) = plt.subplots(
+        1, 2, figsize=(max(10, 1.6 * len(normal)) + 4, 5.5),
+        gridspec_kw={"width_ratios": [max(len(normal), 1), max(len(broken), 1)]},
+    )
+
+    _draw_accuracy_panel(ax_l, normal, bf16_gsm8k, bf16_gsm8k_se, bf16_mmlu, bf16_mmlu_se)
+    _draw_accuracy_panel(ax_r, broken, bf16_gsm8k, bf16_gsm8k_se, bf16_mmlu, bf16_mmlu_se)
+
+    ax_l.set_ylabel("Change vs BF16 (percentage points)")
+    ax_l.set_title("Quantized configs", fontsize=10, color="#555555")
+    ax_r.set_title("FP8 KV cache: outputs broken (see text)", fontsize=10, color="#555555")
 
     hatch_handles = [
         plt.Rectangle((0, 0), 1, 1, facecolor="#999999", hatch=None, edgecolor="white", label="GSM8K"),
         plt.Rectangle((0, 0), 1, 1, facecolor="#999999", hatch="//", edgecolor="white", label="MMLU"),
     ]
-    ax.legend(handles=hatch_handles, loc="best")
-    clean_axes(ax)
+    fig.legend(handles=hatch_handles, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.02))
 
     baseline_bits = []
     if bf16_gsm8k is not None:
@@ -232,8 +276,8 @@ def fig2_accuracy(configs: list[Config], bf16: Config, out_dir: Path) -> None:
         baseline_bits.append(f"MMLU {bf16_mmlu * 100:.1f}%")
     baseline_str = ", ".join(baseline_bits)
     fig.suptitle("What each version costs in accuracy", fontsize=14, fontweight="bold")
-    ax.set_title(f"BF16 baseline: {baseline_str}", fontsize=10, color="#555555")
-    fig.tight_layout()
+    fig.text(0.5, 0.93, f"BF16 baseline: {baseline_str}", ha="center", fontsize=10, color="#555555")
+    fig.tight_layout(rect=(0, 0.06, 1, 0.9))
     fig.savefig(out_dir / "fig2_accuracy.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
 
@@ -245,16 +289,33 @@ def fig2_accuracy(configs: list[Config], bf16: Config, out_dir: Path) -> None:
 def fig3_kv_capacity(configs: list[Config], bf16: Config, out_dir: Path) -> None:
     bf16_kv = bf16.bench_meta.get("kv_cache_tokens")
 
-    fig, (ax_kv, ax_ttft) = plt.subplots(1, 2, figsize=(12, max(4, 0.6 * len(configs))))
+    normal = [c for c in configs if c.id not in BROKEN_KV_IDS]
+    broken = [c for c in configs if c.id in BROKEN_KV_IDS]
+    ordered = normal + broken
+    divider_y = len(normal) - 0.5
 
-    y = list(range(len(configs)))
-    labels = [c.label for c in configs]
-    colors = [c.style["color"] for c in configs]
+    fig, (ax_kv, ax_ttft) = plt.subplots(1, 2, figsize=(12, max(4, 0.6 * len(ordered))))
 
-    kv_vals = [c.bench_meta.get("kv_cache_tokens") for c in configs]
+    y = list(range(len(ordered)))
+    labels = [c.label for c in ordered]
+    colors = [c.style["color"] for c in ordered]
+
+    def mark_divider(ax) -> None:
+        if not broken:
+            return
+        ax.axhline(divider_y, color="#999999", linewidth=0.8, linestyle="-", zorder=3)
+        ax.text(
+            0.02, divider_y, "FP8 KV (outputs broken)", transform=ax.get_yaxis_transform(),
+            fontsize=7, color="#777777", ha="left", va="center", style="italic", zorder=4,
+            bbox=dict(facecolor="white", edgecolor="none", alpha=0.85, boxstyle="round,pad=0.15"),
+        )
+
+    kv_vals = [c.bench_meta.get("kv_cache_tokens") for c in ordered]
     kv_thousands = [v / 1000 if v is not None else 0 for v in kv_vals]
-    ax_kv.barh(y, kv_thousands, color=colors, zorder=2)
-    for yi, cfg, v in zip(y, configs, kv_vals):
+    bars_kv = ax_kv.barh(y, kv_thousands, color=colors, zorder=2)
+    for yi, cfg, v in zip(y, ordered, kv_vals):
+        if cfg.id in BROKEN_KV_IDS:
+            bars_kv[yi].set_hatch(BROKEN_HATCH)
         if v is None:
             continue
         if cfg.id == bf16.id:
@@ -270,13 +331,16 @@ def fig3_kv_capacity(configs: list[Config], bf16: Config, out_dir: Path) -> None
     clean_axes(ax_kv)
     ax_kv.grid(axis="x", color="#e0e0e0", linewidth=0.8, zorder=0)
     ax_kv.grid(axis="y", visible=False)
+    mark_divider(ax_kv)
 
     ttft_vals = []
-    for c in configs:
+    for c in ordered:
         b = c.bench_at("longctx", LONGCTX_CONCURRENCY)
         ttft_vals.append(b["median_ttft_ms"] / 1000 if b else None)
-    ax_ttft.barh(y, [v if v is not None else 0 for v in ttft_vals], color=colors, zorder=2)
-    for yi, v in zip(y, ttft_vals):
+    bars_ttft = ax_ttft.barh(y, [v if v is not None else 0 for v in ttft_vals], color=colors, zorder=2)
+    for yi, cfg, v in zip(y, ordered, ttft_vals):
+        if cfg.id in BROKEN_KV_IDS:
+            bars_ttft[yi].set_hatch(BROKEN_HATCH)
         if v is None:
             continue
         ax_ttft.text(v, yi, f"  {v:.1f}s", va="center", fontsize=8)
@@ -287,9 +351,16 @@ def fig3_kv_capacity(configs: list[Config], bf16: Config, out_dir: Path) -> None
     clean_axes(ax_ttft)
     ax_ttft.grid(axis="x", color="#e0e0e0", linewidth=0.8, zorder=0)
     ax_ttft.grid(axis="y", visible=False)
+    mark_divider(ax_ttft)
 
     fig.suptitle("More memory for conversations means less waiting", fontsize=14, fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.text(
+        0.5, 0.02,
+        "Gray: FP8 KV cache configs produced broken outputs in this setup; "
+        "speed/capacity shown for reference only.",
+        ha="center", fontsize=8, color="#777777", style="italic",
+    )
+    fig.tight_layout(rect=(0, 0.06, 1, 0.95))
     fig.savefig(out_dir / "fig3_kv_capacity.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
 
