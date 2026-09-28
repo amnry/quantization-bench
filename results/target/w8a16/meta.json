@@ -1,0 +1,14 @@
+{
+  "model_name": "target",
+  "config_id": "w8a16",
+  "target": "weights",
+  "tier": 1,
+  "tier_axis": "bits",
+  "is_isolation_ref": false,
+  "w_bits": 8,
+  "a_bits": null,
+  "kv_bits": null,
+  "hf_id": "Qwen/Qwen2.5-7B-Instruct",
+  "checkpoint_dir": "/workspace/quantization-bench/checkpoints/target/w8a16",
+  "quantize_seconds": 1274.0
+}
