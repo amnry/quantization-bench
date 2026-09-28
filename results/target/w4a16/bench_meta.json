@@ -1,0 +1,12 @@
+{
+  "model_name": "target",
+  "config_id": "w4a16",
+  "target": "weights",
+  "tier": 2,
+  "tier_axis": "bits",
+  "is_isolation_ref": false,
+  "w_bits": 4,
+  "a_bits": null,
+  "kv_bits": null,
+  "kv_cache_tokens": 629360
+}
