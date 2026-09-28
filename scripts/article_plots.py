@@ -191,23 +191,24 @@ def fig2_accuracy(configs: list[Config], bf16: Config, out_dir: Path) -> None:
     for i, cfg in enumerate(others):
         g, gse = gsm8k_acc(cfg)
         m, mse = mmlu_acc(cfg)
+        color = cfg.style["color"]
 
         bars = []
         if g is not None and bf16_gsm8k is not None:
             delta = (g - bf16_gsm8k) * 100
             err = math.sqrt(gse ** 2 + bf16_gsm8k_se ** 2) * 100
-            bars.append(("GSM8K", i - width / 2, delta, err, "#4C78A8"))
+            bars.append(("GSM8K", i - width / 2, delta, err, None))
         if m is not None and bf16_mmlu is not None:
             delta = (m - bf16_mmlu) * 100
             err = math.sqrt(mse ** 2 + bf16_mmlu_se ** 2) * 100
-            bars.append(("MMLU", i + width / 2, delta, err, "#F58518"))
+            bars.append(("MMLU", i + width / 2, delta, err, "//"))
 
-        for name, xpos, delta, err, color in bars:
-            ax.bar(xpos, delta, width=width, color=color, yerr=err, capsize=3, zorder=2,
-                   label=name if i == 0 else None)
+        for name, xpos, delta, err, hatch in bars:
+            ax.bar(xpos, delta, width=width, color=color, hatch=hatch, edgecolor="white",
+                   yerr=err, error_kw=dict(ecolor="black"), capsize=3, zorder=2)
             offset = (err + abs(delta) * 0.02 + 0.15) * (1 if delta >= 0 else -1)
             va = "bottom" if delta >= 0 else "top"
-            ax.text(xpos, delta + offset, f"{delta:+.2f}", ha="center", va=va, fontsize=8)
+            ax.text(xpos, delta + offset, f"{delta:+.1f}", ha="center", va=va, fontsize=8)
             label_extents.append(abs(delta + offset))
 
     ax.axhline(0.0, color="#999999", linewidth=1)
@@ -216,7 +217,12 @@ def fig2_accuracy(configs: list[Config], bf16: Config, out_dir: Path) -> None:
     ax.set_ylabel("Change vs BF16 (percentage points)")
     ymax = max(label_extents) * 1.35
     ax.set_ylim(-ymax, ymax)
-    ax.legend(loc="best")
+
+    hatch_handles = [
+        plt.Rectangle((0, 0), 1, 1, facecolor="#999999", hatch=None, edgecolor="white", label="GSM8K"),
+        plt.Rectangle((0, 0), 1, 1, facecolor="#999999", hatch="//", edgecolor="white", label="MMLU"),
+    ]
+    ax.legend(handles=hatch_handles, loc="best")
     clean_axes(ax)
 
     baseline_bits = []
@@ -248,11 +254,15 @@ def fig3_kv_capacity(configs: list[Config], bf16: Config, out_dir: Path) -> None
     kv_vals = [c.bench_meta.get("kv_cache_tokens") for c in configs]
     kv_thousands = [v / 1000 if v is not None else 0 for v in kv_vals]
     ax_kv.barh(y, kv_thousands, color=colors, zorder=2)
-    for yi, v in zip(y, kv_vals):
+    for yi, cfg, v in zip(y, configs, kv_vals):
         if v is None:
             continue
-        pct = (v / bf16_kv - 1) * 100 if bf16_kv else 0
-        ax_kv.text(v / 1000, yi, f"  {v / 1000:.0f}k ({pct:+.0f}%)", va="center", fontsize=8)
+        if cfg.id == bf16.id:
+            suffix = "baseline"
+        else:
+            pct = (v / bf16_kv - 1) * 100 if bf16_kv else 0
+            suffix = f"{pct:+.0f}%"
+        ax_kv.text(v / 1000, yi, f"  {v / 1000:.0f}k ({suffix})", va="center", fontsize=8)
     ax_kv.set_yticks(y)
     ax_kv.set_yticklabels(labels)
     ax_kv.invert_yaxis()
@@ -302,11 +312,11 @@ def fig4_timing(configs: list[Config], rate: float, out_dir: Path) -> tuple[floa
     eval_h = [c.eval.get("eval_seconds", 0.0) / 3600 for c in configs]
     bench_h = [bench_seconds(c) / 3600 for c in configs]
 
-    ax.barh(y, quant_h, color="#4C78A8", label="Quantize", zorder=2)
+    ax.barh(y, quant_h, color="#4d4d4d", label="Quantize", zorder=2)
     left = list(quant_h)
-    ax.barh(y, eval_h, left=left, color="#F58518", label="Accuracy tests", zorder=2)
+    ax.barh(y, eval_h, left=left, color="#9e9e9e", label="Accuracy tests", zorder=2)
     left = [a + b for a, b in zip(left, eval_h)]
-    ax.barh(y, bench_h, left=left, color="#54A24B", label="Speed tests", zorder=2)
+    ax.barh(y, bench_h, left=left, color="#d4d4d4", label="Speed tests", zorder=2)
 
     totals = [q + e + b for q, e, b in zip(quant_h, eval_h, bench_h)]
     ax.set_xlim(0, max(totals) * 1.28)
@@ -323,6 +333,8 @@ def fig4_timing(configs: list[Config], rate: float, out_dir: Path) -> tuple[floa
 
     handles, leg_labels = ax.get_legend_handles_labels()
     fig.legend(handles, leg_labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.02))
+    fig.text(0.5, -0.06, "GPU time for the final run only; excludes setup and debugging.",
+              ha="center", fontsize=8, color="#777777", style="italic")
 
     grand_total_h = sum(totals)
     grand_total_cost = grand_total_h * rate
@@ -330,7 +342,7 @@ def fig4_timing(configs: list[Config], rate: float, out_dir: Path) -> tuple[floa
         f"Total: {grand_total_h:.2f} GPU-hours, \\${grand_total_cost:.2f} at \\${rate:.2f}/hr",
         fontsize=13, fontweight="bold",
     )
-    fig.tight_layout(rect=(0, 0.08, 1, 0.93))
+    fig.tight_layout(rect=(0, 0.1, 1, 0.93))
     fig.savefig(out_dir / "fig4_timing.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
     return grand_total_h, grand_total_cost
