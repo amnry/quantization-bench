@@ -1,0 +1,14 @@
+{
+  "model_name": "target",
+  "config_id": "w8a8-fp8",
+  "target": "activations",
+  "tier": 1,
+  "tier_axis": "format",
+  "is_isolation_ref": false,
+  "w_bits": 8,
+  "a_bits": 8,
+  "kv_bits": null,
+  "hf_id": "Qwen/Qwen2.5-7B-Instruct",
+  "checkpoint_dir": "/workspace/quantization-bench/checkpoints/target/w8a8-fp8",
+  "quantize_seconds": 635.7
+}

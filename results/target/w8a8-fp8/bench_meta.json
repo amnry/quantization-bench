@@ -1,0 +1,12 @@
+{
+  "model_name": "target",
+  "config_id": "w8a8-fp8",
+  "target": "activations",
+  "tier": 1,
+  "tier_axis": "format",
+  "is_isolation_ref": false,
+  "w_bits": 8,
+  "a_bits": 8,
+  "kv_bits": null,
+  "kv_cache_tokens": 568960
+}
