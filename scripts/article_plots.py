@@ -11,7 +11,7 @@ Produces, under results/article/:
     summary.md             one table with every number behind the figures
 
 Usage:
-    python scripts/article_plots.py --model target --rate 1.09
+    python scripts/article_plots.py --model target --rate 1.11 --uptime-hours 12.5
 """
 from __future__ import annotations
 
@@ -302,7 +302,7 @@ def bench_seconds(cfg: Config) -> float:
     return sum(b.get("duration", 0.0) for b in cfg.bench.values() if b)
 
 
-def fig4_timing(configs: list[Config], rate: float, out_dir: Path) -> tuple[float, float]:
+def fig4_timing(configs: list[Config], rate: float, uptime_hours: float, out_dir: Path) -> float:
     fig, ax = plt.subplots(figsize=(10, max(4, 0.6 * len(configs))))
 
     y = list(range(len(configs)))
@@ -312,16 +312,16 @@ def fig4_timing(configs: list[Config], rate: float, out_dir: Path) -> tuple[floa
     eval_h = [c.eval.get("eval_seconds", 0.0) / 3600 for c in configs]
     bench_h = [bench_seconds(c) / 3600 for c in configs]
 
-    ax.barh(y, quant_h, color="#4d4d4d", label="Quantize", zorder=2)
+    ax.barh(y, quant_h, color="#8fd9c4", label="Quantize", zorder=2)
     left = list(quant_h)
-    ax.barh(y, eval_h, left=left, color="#9e9e9e", label="Accuracy tests", zorder=2)
+    ax.barh(y, eval_h, left=left, color="#1f7a8c", label="Accuracy tests", zorder=2)
     left = [a + b for a, b in zip(left, eval_h)]
-    ax.barh(y, bench_h, left=left, color="#d4d4d4", label="Speed tests", zorder=2)
+    ax.barh(y, bench_h, left=left, color="#0b3d4a", label="Speed tests", zorder=2)
 
     totals = [q + e + b for q, e, b in zip(quant_h, eval_h, bench_h)]
-    ax.set_xlim(0, max(totals) * 1.28)
+    ax.set_xlim(0, max(totals) * 1.2)
     for yi, total in zip(y, totals):
-        ax.text(total, yi, f"  {total:.2f}h (\\${total * rate:.2f})", va="center", fontsize=8)
+        ax.text(total, yi, f"  {total:.2f}h", va="center", fontsize=8)
 
     ax.set_yticks(y)
     ax.set_yticklabels(labels)
@@ -333,19 +333,21 @@ def fig4_timing(configs: list[Config], rate: float, out_dir: Path) -> tuple[floa
 
     handles, leg_labels = ax.get_legend_handles_labels()
     fig.legend(handles, leg_labels, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.02))
-    fig.text(0.5, -0.06, "GPU time for the final run only; excludes setup and debugging.",
-              ha="center", fontsize=8, color="#777777", style="italic")
+    fig.text(
+        0.5, -0.06,
+        f"Bars show GPU time per config in the final run. One NVIDIA L40S at "
+        f"\\${rate:.2f}/hr; total pod uptime: {uptime_hours:.1f} hours.",
+        ha="center", fontsize=8, color="#777777", style="italic",
+    )
 
     grand_total_h = sum(totals)
-    grand_total_cost = grand_total_h * rate
-    fig.suptitle(
-        f"Total: {grand_total_h:.2f} GPU-hours, \\${grand_total_cost:.2f} at \\${rate:.2f}/hr",
-        fontsize=13, fontweight="bold",
-    )
+    fig.suptitle("Where the GPU time went", fontsize=14, fontweight="bold")
+    ax.set_title(f"Total: {grand_total_h:.2f} GPU-hours across {len(configs)} configs",
+                 fontsize=10, color="#555555")
     fig.tight_layout(rect=(0, 0.1, 1, 0.93))
     fig.savefig(out_dir / "fig4_timing.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
-    return grand_total_h, grand_total_cost
+    return grand_total_h
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +423,8 @@ def write_summary(configs: list[Config], bf16: Config, rate: float, out_dir: Pat
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="target")
-    ap.add_argument("--rate", type=float, default=1.09, help="$/GPU-hour")
+    ap.add_argument("--rate", type=float, default=1.11, help="$/GPU-hour")
+    ap.add_argument("--uptime-hours", type=float, required=True, help="total pod uptime, in hours")
     args = ap.parse_args()
 
     configs = load_configs(args.model)
@@ -436,7 +439,7 @@ def main() -> None:
     fig1_speedup(configs, bf16, ARTICLE_DIR)
     fig2_accuracy(configs, bf16, ARTICLE_DIR)
     fig3_kv_capacity(configs, bf16, ARTICLE_DIR)
-    fig4_timing(configs, args.rate, ARTICLE_DIR)
+    fig4_timing(configs, args.rate, args.uptime_hours, ARTICLE_DIR)
     write_summary(configs, bf16, args.rate, ARTICLE_DIR)
 
     print(f"Wrote figures + summary for {len(configs)} configs to {ARTICLE_DIR}")
