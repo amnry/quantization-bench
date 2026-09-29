@@ -8,7 +8,6 @@ tier_axis: bits
 weights:
   scheme: W8A16
   algorithm: gptq
-  group_size: 128
   targets: ["re:.*(q_proj|k_proj|v_proj|o_proj)$"]
   ignore: ["lm_head"]
 activations: null

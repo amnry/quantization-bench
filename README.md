@@ -71,18 +71,18 @@ Calibration for every non-control config: `HuggingFaceH4/ultrachat_200k`, split 
 | id | target | tier | tier_axis | Scheme (from `configs/quant/*.yaml`) | Notes |
 |---|---|---|---|---|---|
 | `bf16` | control | 0 | none | No quantization | Baseline |
-| `w8a16` | weights | 1 | bits | INT8 weights (`W8A16`), GPTQ, `group_size: 128` in yaml, targets `Linear` | Ran |
-| `w4a16` | weights | 2 | bits | INT4 weights (`W4A16`), GPTQ, `group_size: 128` in yaml, targets `Linear` | Ran |
+| `w8a16` | weights | 1 | bits | INT8 weights (`W8A16`), GPTQ, per-channel weights (symmetric), targets `Linear` | Ran |
+| `w4a16` | weights | 2 | bits | INT4 weights (`W4A16`), GPTQ, group size 128, targets `Linear` | Ran |
 | `w8a16-fp8` | isolation-ref | none | none | FP8 weights, no activation quant, no GPTQ (`algorithm: none`), per-channel weights | Isolation reference only (`is_isolation_ref: true`) |
 | `w8a8-fp8` | activations | 1 | format | FP8 weights + `FP8_DYNAMIC` activations (dynamic, per-token), `algorithm: none` | Ran |
-| `w8a8-int8` | activations | 2 | format | SmoothQuant (`smoothing_strength: 0.8`) + GPTQ `W8A8`; activations dynamic per-token; `group_size: 128` listed in yaml | Ran |
+| `w8a8-int8` | activations | 2 | format | SmoothQuant (`smoothing_strength: 0.8`) + GPTQ `W8A8`; per-channel INT8 weights (symmetric), dynamic per-token INT8 activations (symmetric) | Ran |
 | `kv-fp8-e4m3` | kv | 1 | format | BF16 weights/activations; 8-bit float KV cache, tensor strategy, static scales from calibration; vLLM `--kv-cache-dtype fp8_e4m3` | Ran; outputs broken (section 9) |
 | `kv-fp8-e5m2` | kv | 2 | format | Same KV recipe in yaml; vLLM `--kv-cache-dtype fp8_e5m2` | Ran; outputs broken (section 9) |
-| `attn-proj-w8` | attn-proj | 1 | bits | INT8 weight-only (`W8A16`) GPTQ on `q_proj/k_proj/v_proj/o_proj` only, MLP stays BF16 | Skipped for budget (`SKIPPED` marker) |
+| `attn-proj-w8` | attn-proj | 1 | bits | INT8 weight-only (`W8A16`) GPTQ, per-channel weights, on `q_proj/k_proj/v_proj/o_proj` only, MLP stays BF16 | Skipped for budget (`SKIPPED` marker) |
 | `attn-proj-w4` | attn-proj | 2 | bits | INT4 weight-only (`W4A16`) GPTQ on `q_proj/k_proj/v_proj/o_proj` only, MLP stays BF16 | Skipped for budget (`SKIPPED` marker) |
 
 Implementation notes from `scripts/quantize.py`:
-- `group_size` is not passed to llm-compressor. The code comment says the `W4A16`/`W8A16` presets already use group size 128 (checked against compressed-tensors 0.14), so the yaml field is documentation only. Checkpoints are gitignored, so the resulting granularity was not re-inspected for this README.
+- Granularity comes from the llm-compressor preset schemes, which are defined in compressed-tensors 0.14.0.1 (`compressed_tensors/quantization/quant_scheme.py`): `W8A16` = INT8 per-channel weights; `W8A8` (alias of `INT8_W8A8`) = INT8 per-channel weights + INT8 per-token dynamic activations; `W4A16` = INT4 weights with group size 128 (the only grouped scheme in the matrix). `group_size` is not passed to llm-compressor and has been removed from the `w8a16`, `w8a8-int8` and `attn-proj-w8` yamls; it remains in `w4a16` and `attn-proj-w4`, where it matches the preset. The resulting checkpoints are gitignored, so their on-disk `config.json` was not re-inspected.
 - The KV `format` field (`e4m3`/`e5m2`) is also not passed to llm-compressor. Both KV configs go through the same calibration recipe (8-bit float, tensor, static); the e4m3/e5m2 difference is applied by the vLLM `--kv-cache-dtype` flag at serve time.
 - KV configs floor calibration at 512 samples (a no-op for the 7B model, whose default is already 512).
 

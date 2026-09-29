@@ -6,7 +6,6 @@ tier_axis: bits
 weights:
   scheme: W8A16
   algorithm: gptq
-  group_size: 128
   targets: ["Linear"]
   ignore: ["lm_head"]
 activations: null

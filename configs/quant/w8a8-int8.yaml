@@ -12,7 +12,6 @@ smoothquant:
 weights:
   scheme: W8A8
   algorithm: gptq
-  group_size: 128
   targets: ["Linear"]
   ignore: ["lm_head"]
 activations:
