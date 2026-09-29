@@ -6,6 +6,18 @@ Writeup: https://x.com/amnryx/status/2104963112893841914
 
 All numbers below come from files in this repo (`results/article/summary.md`, `results/target/*/{eval,meta,bench_meta}.json`, `results/target/*/bench_*.json`, `configs/`, `requirements-lock.txt`, `ANALYSIS.md`).
 
+## Results at a glance
+
+FP8 KV configs are hatched/gray because their outputs are broken (section 9).
+
+![Speedup vs BF16, decode and prefill, by concurrency](results/article/fig1_speedup.png)
+
+![Accuracy change vs BF16 (GSM8K, MMLU)](results/article/fig2_accuracy.png)
+
+![KV cache capacity and long-context TTFT at c=64](results/article/fig3_kv_capacity.png)
+
+![GPU time per config: quantize, accuracy tests, speed tests](results/article/fig4_timing.png)
+
 ---
 
 ## 1. Question and hypotheses
@@ -155,16 +167,6 @@ Metrics used in the tables: decode throughput = `output_throughput` (output tok/
 **Total: 20.22 GPU-hours, $22.45 at $1.11/hr** (the rate is the default of `scripts/article_plots.py`; billing data is not in the repo).
 
 GPU hours per config = `quantize_seconds` + `eval_seconds` + summed bench `duration` (server startup and model download are not counted).
-
-### Figures (`results/article/`)
-
-![Speedup vs BF16, decode and prefill, by concurrency](results/article/fig1_speedup.png)
-
-![Accuracy change vs BF16 (GSM8K, MMLU)](results/article/fig2_accuracy.png)
-
-![KV cache capacity and long-context TTFT at c=64](results/article/fig3_kv_capacity.png)
-
-![GPU time per config: quantize, accuracy tests, speed tests](results/article/fig4_timing.png)
 
 ### Throughput by concurrency (from `bench_*.json`)
 
